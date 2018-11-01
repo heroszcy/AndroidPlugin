@@ -51,28 +51,30 @@ class ProjectModuleManager {
         if (runAsApp) {
             project.apply plugin: 'com.android.application'
 
-//            project.android.sourceSets.main {
-//                //debug模式下，如果存在src/main/debug/AndroidManifest.xml，则自动使用其作为manifest文件
-//                def debugManifest = "${DEBUG_DIR}AndroidManifest.xml"
-//                if (project.file(debugManifest).exists()) {
-//                    manifest.srcFile debugManifest
-//                }
-//                //debug模式下，如果存在src/main/debug/assets，则自动将其添加到assets源码目录
-//                if (project.file("${DEBUG_DIR}assets").exists()) {
-//                    assets.srcDirs = ['src/main/assets', "${DEBUG_DIR}assets"]
-//                }
-//                //debug模式下，如果存在src/main/debug/java，则自动将其添加到java源码目录
-//                if (project.file("${DEBUG_DIR}java").exists()) {
-//                    java.srcDirs = ['src/main/java', "${DEBUG_DIR}java"]
-//                }
-//                //debug模式下，如果存在src/main/debug/res，则自动将其添加到资源目录
-//                if (project.file("${DEBUG_DIR}res").exists()) {
-//                    res.srcDirs = ['src/main/res', "${DEBUG_DIR}res"]
-//                }
-//            }
+            project.android.sourceSets.main {
+                //debug模式下，如果存在src/main/debug/AndroidManifest.xml，则自动使用其作为manifest文件
+                def debugManifest = "${DEBUG_DIR}AndroidManifest.xml"
+                if (project.file(debugManifest).exists()) {
+                    manifest.srcFile debugManifest
+                }
+                //debug模式下，如果存在src/main/debug/assets，则自动将其添加到assets源码目录
+                if (project.file("${DEBUG_DIR}assets").exists()) {
+                    assets.srcDirs = ['src/main/assets', "${DEBUG_DIR}assets"]
+                }
+                //debug模式下，如果存在src/main/debug/java，则自动将其添加到java源码目录
+                if (project.file("${DEBUG_DIR}java").exists()) {
+                    java.srcDirs = ['src/main/java', "${DEBUG_DIR}java"]
+                }
+                //debug模式下，如果存在src/main/debug/res，则自动将其添加到资源目录
+                if (project.file("${DEBUG_DIR}res").exists()) {
+                    res.srcDirs = ['src/main/res', "${DEBUG_DIR}res"]
+                }
+            }
         } else {
             project.apply plugin: 'com.android.library'
         }
+        //为build.gradle添加addComponent方法
+        addComponentDependencyMethod(project, localProperties)
         return runAsApp
     }
 
@@ -82,6 +84,7 @@ class ProjectModuleManager {
         def taskNames = project.gradle.startParameter.taskNames
         def allModuleBuildApkPattern = Pattern.compile(TASK_TYPES)
         for (String task : taskNames) {
+            println("taskName:${task}")
             if (allModuleBuildApkPattern.matcher(task.toUpperCase()).matches()) {
                 taskIsAssemble = true
                 if (task.contains(":")) {
@@ -108,5 +111,50 @@ class ProjectModuleManager {
     //判断当前设置的环境是否为组件打aar包（比如将组件打包上传maven库）
     static boolean isBuildingAar(Properties localProperties) {
         return 'true' == localProperties.getProperty(ASSEMBLE_AAR_FOR_CC_COMPONENT)
+    }
+
+    //组件依赖的方法，用于进行代码隔离
+    //对组件库的依赖格式： addComponent dependencyName [, realDependency]
+    // 使用示例见demo/build.gradle
+    //  dependencyName: 组件库的名称，推荐直接使用使用module的名称
+    //  realDependency(可选): 组件库对应的实际依赖，可以是module依赖，也可以是maven依赖
+    //    如果未配置realDependency，将自动依赖 project(":$dependencyName")
+    //    realDependency可以为如下2种中的一种:
+    //      module依赖 : project(':demo_component_b') //如果module名称跟dependencyName相同，可省略(推荐)
+    //      maven依赖  : 'com.billy.demo:demoB:1.1.0' //如果使用了maven私服，请使用此方式
+    static void addComponentDependencyMethod(Project project, Properties localProperties) {
+        //当前task是否为给本module打apk包
+        def curModuleIsBuildingApk = taskIsAssemble && (mainModuleName == null && isMainApp(project) || mainModuleName == project.name)
+        project.ext.addComponent = { dependencyName, realDependency = null ->
+            //不是在为本app module打apk包，不添加对组件的依赖
+            if (!curModuleIsBuildingApk)
+                return
+            def excludeModule = 'true' == localProperties.getProperty(dependencyName)
+            if (!excludeModule) {
+                def componentProject = project.rootProject.subprojects.find { it.name == dependencyName }
+                def dependencyMode = (project.gradle.gradleVersion as float) >= 4.1F ? 'api' : 'compile'
+                if (realDependency) {
+                    //通过参数传递的依赖方式，如：
+                    // project(':moduleName')
+                    // 或
+                    // 'com.billy.demo:demoA:1.1.0'
+                    project.dependencies.add(dependencyMode, realDependency)
+                    println "CC >>>> add $realDependency to ${project.name}'s dependencies"
+                } else if (componentProject) {
+                    //第二个参数未传，默认为按照module来进行依赖
+                    project.dependencies.add(dependencyMode, project.project(":$dependencyName"))
+                    println "CC >>>> add project(\":$dependencyName\") to ${project.name}'s dependencies"
+                } else {
+                    throw new RuntimeException(
+                            "CC >>>> add dependency by [ addComponent '$dependencyName' ] occurred an error:" +
+                                    "\n'$dependencyName' is not a module in current project" +
+                                    " and the 2nd param is not specified for realDependency" +
+                                    "\nPlease make sure the module name is '$dependencyName'" +
+                                    "\nelse" +
+                                    "\nyou can specify the real dependency via add the 2nd param, for example: " +
+                                    "addComponent '$dependencyName', 'com.billy.demo:demoB:1.1.0'")
+                }
+            }
+        }
     }
 }

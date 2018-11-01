@@ -1,21 +1,20 @@
+buildscript {
+    repositories {
+        maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        google()
+        jcenter()
+    }
+    dependencies{
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+    }
+}
+
 plugins {
-    id 'java'
     id 'groovy'
-    id 'maven'
 }
-
-ext{
-    publishedGroupId ='com.cici.plugin'
-    artifact = 'cici-auto-config'
-    libraryVersion = '1.0.0'
-}
-
 
 sourceCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
 
 dependencies {
     compile localGroovy()
@@ -23,13 +22,35 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
-uploadArchives{
-    repositories {
-        mavenDeployer{
-            repository(url:uri('F:/cici/repo'))
-            pom.groupId=publishedGroupId
-            pom.artifactId=artifact
-            pom.version=libraryVersion+'-SNAPSHOT'
-        }
-    }
+ext{
+    bintrayRepo = 'cici_repo'
+    bintrayName = 'cici-auto-config'
+    publishedGroupId ='com.cici.plugin'
+    artifact = 'cici-auto-config'
+    libraryName ='AutoConfig'
+    libraryVersion = '1.0.1'
+    libraryDescription = 'android application and library auto config'
+    siteUrl = 'https://github.com/heroszcy/AndroidPlugin'
+    gitUrl = 'https://github.com/heroszcy/AndroidPlugin.git'
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+    developerId = 'heroszcy'
+    developerName = 'heroszcy'
+    developerEmail = 'zhaochongyou@gmail.com'
 }
+
+apply from: rootProject.file('bintray.gradle')
+//
+//apply plugin:'maven'
+//uploadArchives{
+//    repositories {
+//        mavenDeployer{
+//            repository(url:uri('F:/cici/repo'))
+//            pom.groupId=publishedGroupId
+//            pom.artifactId=artifact
+//            pom.version=libraryVersion+'-SNAPSHOT'
+//        }
+//    }
+//}
+

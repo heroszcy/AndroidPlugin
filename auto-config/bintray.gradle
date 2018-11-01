@@ -1,0 +1,80 @@
+apply plugin:'com.jfrog.bintray'
+ version = libraryVersion
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    baseName = 'auto-config'
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    baseName = 'auto-config'
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+Properties properties = new Properties();
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+bintray{
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.userKey")
+    println("user:${user}; key:${key}")
+    configurations = ['archives']
+    pkg{
+        repo = bintrayRepo
+        name = bintrayName
+//        userOrg = 'bintray_user'
+        desc = libraryDescription
+        licenses = ['Apache-2.0']
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            name = version
+            desc = libraryDescription
+            released = new Date()
+        }
+    }
+}
+apply plugin: 'com.github.dcendents.android-maven'
+group = publishedGroupId
+install{
+    repositories.mavenInstaller{
+        pom{
+            project{
+                packaging 'aar'
+                groupId publishedGroupId
+                artifactId artifact
+                name libraryName
+                description libraryDescription
+                url siteUrl
+                // Set your license
+                licenses {
+                    license {
+                        name licenseName
+                        url licenseUrl
+                    }
+                }
+                developers {
+                    developer {
+                        id developerId
+                        name developerName
+                        email developerEmail
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+
+                }
+            }
+        }
+    }
+}
