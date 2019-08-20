@@ -28,7 +28,7 @@ ext{
     publishedGroupId ='com.cici.plugin'
     artifact = 'cici-auto-config'
     libraryName ='AutoConfig'
-    libraryVersion = '1.0.1'
+    libraryVersion = '1.0.3'
     libraryDescription = 'android application and library auto config'
     siteUrl = 'https://github.com/heroszcy/AndroidPlugin'
     gitUrl = 'https://github.com/heroszcy/AndroidPlugin.git'

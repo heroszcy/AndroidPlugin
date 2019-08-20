@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.cici.plugin</groupId>
   <artifactId>cici-auto-config</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.3</version>
   <name>AutoConfig</name>
   <description>android application and library auto config</description>
   <url>https://github.com/heroszcy/AndroidPlugin</url>
